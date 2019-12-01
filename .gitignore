@@ -119,6 +119,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# swap files from vim
+*.swp
+
 # venv
 venv
 # End of https://www.gitignore.io/api/django
