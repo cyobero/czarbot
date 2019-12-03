@@ -71,3 +71,41 @@ def tokenize_and_filter(hyper_params, tokenizer, questions, answers):
         tokenized_answers, maxlen=hyper_params.max_length, padding='post')
 
     return tokenized_questions, tokenized_answers
+
+
+def get_dataset(hyper_params):
+    # download corpus
+    path_to_zip = tf.keras.utils.get_file(
+        'cornell_movie_dialogs.zip',
+        origin=
+        'http://www.cs.cornell.edu/~cristian/data/cornell/cornell_movie_dialogs_corpus.zip',
+        extract=True)
+
+    path_to_dataset = os.path.join(
+        os.path.dirname(path_to_zip), "cornell movie-dialogs corpus")
+
+    # get movie_lines.txt and movie_conversations.txt
+    lines_filename = os.path.join(path_to_dataset, 'movie_liens.txt')
+    conversations_filename = os.path.join(path_to_dataset, 'movie_conversations.txt')
+
+    questions, answers = load_conversations(hyper_params, lines_filename,
+         conversations_filename)
+
+    tokenizer = tfds.features.text.SubwordTextEncoder.build_from_corpus(
+        questions + answers, target_vocab_size=2**14)
+
+    hyper_params.start_token = [tokenizer.vocab_size]
+    hyper_params.end_token = [tokenizer.vocab_size + 1]
+    hyper_params.vocab_size = tokenizer.vocab_size + 2
+
+    questions, answers = tokenize_and_filter(hyper_params=, tokenizer, questions,
+                                                                        answers)
+
+    dataset = tf.data.Dataset.from_tensor_slices(({
+        'inputs' : questions,
+        'dec_inputs' : answers[:, :-1]
+        }, answers[:, 1:]))
+    dataset = dataset.cache()
+    dataset = dataset.shuffle(len(questions))
+    dataset = dataset.batch(hyper_params.batch_size)
+    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
