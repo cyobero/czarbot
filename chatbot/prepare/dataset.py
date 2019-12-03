@@ -109,3 +109,5 @@ def get_dataset(hyper_params):
     dataset = dataset.shuffle(len(questions))
     dataset = dataset.batch(hyper_params.batch_size)
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
+    return dataset, tokenizer
