@@ -30,7 +30,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
         assert self.d_model % self.num_heads == 0
 
-        self.depth = self.d_model // self.num_heads 
+        self.depth = self.d_model // self.num_heads
 
         self.query_dense = tf.keras.layers.Dense(self.d_model)
         self.key_dense = tf.keras.layers.Dense(self.d_model)
@@ -88,7 +88,7 @@ class PositionalEncoding(tf.keras.layers.Layer):
 
     def __init__(self, hyper_params):
         super(PositionalEncoding, self).__init__()
-        self.pos_encoding = self.positional_encoding(hyper_params.vocab_size, 
+        self.pos_encoding = self.positional_encoding(hyper_params.vocab_size,
                 hyper_params.d_model)
 
     def get_angles(self, position, i, d_model):
@@ -106,7 +106,7 @@ class PositionalEncoding(tf.keras.layers.Layer):
 
         pos_encoding = tf.concat([sines, cosines], axis=-1)
         pos_encoding = pos_encoding[tf.newaxis, ...]
-        
+
         return tf.cast(pos_encoding, tf.float32)
 
     def call(self, inputs):
@@ -120,12 +120,12 @@ def encoder_layer(hyper_params, name="encoder_layer"):
     attention = MultiHeadAttention(
             hyper_params = name="attention")({
                 'query' : inputs,
-                'key' : inputs, 
+                'key' : inputs,
                 'value' : inputs,
                 'mask' : padding_mask
             })
     attention = tf.keras.layers.Dropout(hyper_params.dropout)(attention)
-    attention = tf.keras.layers.LayerNormalization(epsilon=1e-6)(inputs + 
+    attention = tf.keras.layers.LayerNormalization(epsilon=1e-6)(inputs +
                                                                  attention)
 
     outputs = tf.keras.layers.Dense(
@@ -139,7 +139,7 @@ def encoder(hyper_params, name="encoder"):
     inputs = tf.keras.Input(shape=(None, ), name="inputs")
     padding_mask = tf.keras.Input(shape=(1, 1, None), name="padding_mask")
 
-    embeddings = tf.keras.layers.Embedding(hyper_params.vocab_size, 
+    embeddings = tf.keras.layers.Embedding(hyper_params.vocab_size,
                                             hyper_params.d_model)(inputs)
     embeddings *= tf.math.sqrt(tf.cast(hyper_params.d_model, tf.float32))
     embeddings = PositionalEncoding(hyper_params)(embeddings)
@@ -154,3 +154,38 @@ def encoder(hyper_params, name="encoder"):
 
         return tf.keras.Model(
             inputs=[inputs, padding_mask], outputs=outputs, name=name)
+
+
+def decoder_layer(hyper_params, name="decoder_layer"):
+    inputs = tf.keras.Input(shape=(None, hyper_params.d_model), name="inputs")
+    enc_outputs = tf.keras.Input(
+        shape=(None, hyper_params.d_model), name="encoder_outputs")
+    look_ahead_mask = tf.keras.Input(
+        shape=(1, None, None), name="look_ahead_mask")
+    padding_mask = tf.keras.Input(shape=(1, 1, None), name="padding_mask")
+
+    attention1 = MultiHeadAttention(
+            hyper_params, name="attention_1")(inputs={
+                'query' : inputs,
+                'key'   : inputs,
+                'value' : inputs,
+                'mask'  : look_ahead_mask
+            })
+    attention1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(attention1 + inputs)
+
+    attention2 = MultiHeadAttention(
+            hyper_params, name="attention_2")(inputs={
+                'query' : inputs,
+                'key'   : enc_outputs,
+                'value' : enc_outputs,
+                'mask'  : padding_mask
+            })
+    attention2 = tf.keras.layers.Dropout(hyper_params)(attention2)
+    attention2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(attention2 + inputs)
+
+    outputs = tf.keras.layers.Dense(
+        hyper_params.num_units, activation=hyper_params.activation)(attention2)
+    outputs = tf.keras.layers.Dense(hyper_params.d_model)(outputs)
+    outputs = tf.keras.layers.Dropout(hyper_params.dropout)(outputs)
+    outputs = tf.keras.layers.LayerNormalization(epsilon=1e-6)()
+
