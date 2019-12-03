@@ -120,11 +120,13 @@ dmypy.json
 .pyre/
 
 # swap files from vim
-*.swp
+.swp
 
 # Dockerfile
 Dockerfile
 
 # venv
 venv
+
+
 # End of https://www.gitignore.io/api/django
