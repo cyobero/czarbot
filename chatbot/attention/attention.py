@@ -1,8 +1,12 @@
 """
 This module calculates the scaled dot-product attention and multihead attention
 """
+import tensorflow as tf
 
 def scaled_dot_product_attention(query, key, value, mask):
+    """
+    Calculates scaled dot product attention
+    """
     # calculate attention weights
     matmul_qk = tf.matmul(query, key, transpose_b=True)
 
@@ -23,6 +27,7 @@ def scaled_dot_product_attention(query, key, value, mask):
 
 
 class MultiHeadAttention(tf.keras.layers.Layer):
+    """Creates MultiHead Attention Layer"""
 
     def __init__(self, d_model, num_heads, name="multi_head_attention"):
         super(MultiHeadAttention, self).__init__(name=name)
@@ -45,8 +50,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         return tf.transpose(inputs, perm=[0, 2, 1, 3])
 
     def call(self, inputs):
-        query, key, value, mask = inputs['query'], input['key'],
-            inputs['value'], inputs['mask']
+        query, key, value, mask = inputs['query'], inputs['key'], inputs['value'], inputs['mask']
         batch_size = tf.shape(query)[0]
 
         # linear layers
